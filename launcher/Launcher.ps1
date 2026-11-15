@@ -8,6 +8,24 @@ param([switch]$Repair, [switch]$NoUpdate)
 . (Join-Path $PSScriptRoot 'KaidoCommon.ps1')
 
 $installDir = Split-Path -Parent $PSScriptRoot
+
+# migration: installs made before the native app point their shortcuts at this script.
+# When KaidoNights.exe exists, repoint the shortcuts and hand over to it.
+$nativeExe = Join-Path $installDir 'KaidoNights.exe'
+if (Test-Path -LiteralPath $nativeExe) {
+  try {
+    $sh = New-Object -ComObject WScript.Shell
+    $menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Kaido Nights'
+    $links = @(@((Join-Path ([Environment]::GetFolderPath('Desktop')) 'Kaido Nights.lnk'), ''), @((Join-Path $menu 'Kaido Nights.lnk'), ''), @((Join-Path $menu 'Reparar Kaido Nights.lnk'), '--repair'))
+    foreach ($l in $links) {
+      if (Test-Path -LiteralPath $l[0]) { $k = $sh.CreateShortcut($l[0]); $k.TargetPath = $nativeExe; $k.Arguments = $l[1]; $k.WorkingDirectory = $installDir; $k.IconLocation = $nativeExe + ',0'; $k.Save() }
+    }
+    Set-ItemProperty -Path $script:KaidoRegKey -Name 'DisplayIcon' -Value $nativeExe -ErrorAction SilentlyContinue
+  } catch { Write-KaidoLog ('migracao de atalhos falhou: ' + $_.Exception.Message) }
+  $a = @(); if ($Repair) { $a += '--repair' }; if ($NoUpdate) { $a += '--no-update' }
+  if ($a.Count) { Start-Process -FilePath $nativeExe -WorkingDirectory $installDir -ArgumentList $a } else { Start-Process -FilePath $nativeExe -WorkingDirectory $installDir }
+  exit 0
+}
 $cfg = Read-KaidoConfig $PSScriptRoot
 $keyXml = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'update-key.xml') -Raw
 $win = New-KaidoWindow 'Kaido Nights'
@@ -36,6 +54,13 @@ if (-not $NoUpdate -and $cfg.manifestUrls.Count -gt 0) {
     $win.notes.Text = $_.Exception.Message
     Start-Sleep -Seconds 2
   }
+}
+
+# the update may have just installed the native app: use it from now on
+if (Test-Path -LiteralPath $nativeExe) {
+  $win.form.Close()
+  Start-Process -FilePath $nativeExe -WorkingDirectory $installDir -ArgumentList '--no-update'
+  exit 0
 }
 
 # ---------------------------------------------------------------- start the game
