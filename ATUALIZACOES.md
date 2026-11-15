@@ -7,9 +7,10 @@ O jogo agora tem um **instalador para Windows** e um **launcher que se atualiza 
 1. Execute **`KaidoNights-Setup.exe`** (ou `KaidoNights-Setup-Completo.exe`, que funciona sem internet).
    - Instala em `%LOCALAPPDATA%\Programs\KaidoNights` — **não pede administrador**.
    - Cria atalhos na área de trabalho e no menu Iniciar (*Kaido Nights*, *Reparar Kaido Nights*, *Desinstalar Kaido Nights*) e aparece em *Configurações → Aplicativos instalados*.
-2. Abra pelo atalho **Kaido Nights**. O launcher:
-   - procura uma versão nova, mostra as novidades e uma barra de progresso, e baixa **apenas o que mudou**;
-   - abre o jogo numa janela própria (Edge ou Chrome em modo aplicativo) com o servidor local embutido;
+2. Abra pelo atalho **Kaido Nights** — é o aplicativo nativo **`KaidoNights.exe`**:
+   - procura uma versão nova, mostra as novidades e uma barra de progresso, e baixa **apenas o que mudou** (inclusive o próprio `.exe`, que reinicia sozinho);
+   - abre o jogo numa janela própria do Windows, sem barra de endereço nem menus de navegador (o motor é o componente Microsoft Edge WebView2, que já vem no Windows 10/11). **F11** ou **Alt+Enter** alterna tela cheia/janela; a escolha fica salva;
+   - se o WebView2 não existir no PC, oferece o download da Microsoft ou abrir no navegador;
    - sem internet ou com o servidor de atualização fora do ar, abre a versão instalada normalmente.
 3. **Reparar Kaido Nights** confere o SHA-256 de todos os arquivos e corrige os danificados.
 4. Desinstalar pergunta se você quer manter os saves (ficam em `%LOCALAPPDATA%\KaidoNights`).
@@ -75,6 +76,7 @@ Basta rodar `node tools/release.mjs --notes "..."` e deixar `release/` disponív
 
 | Arquivo | Função |
 |---|---|
+| `native/KaidoNights.cs`, `native/GameHost.cs` | aplicativo nativo: atualizador + janela WebView2 (compilado por `tools/build-native.ps1`) |
 | `launcher/Instalar.ps1` | instala/atualiza/desinstala, atalhos, entrada em "Aplicativos instalados" |
 | `launcher/Launcher.ps1` | verifica e aplica atualizações, inicia servidor local e a janela do jogo |
 | `launcher/KaidoCommon.ps1` | download, verificação de assinatura e hash, aplicação com backup, janela de progresso |

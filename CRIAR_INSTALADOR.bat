@@ -13,7 +13,9 @@ if exist "release\manifest.json" set /p PUB="Publicar uma NOVA versao local ante
 if /i "!PUB!"=="S" (
   set "NOTAS="
   set /p NOTAS="Novidades desta versao (Enter para pular): "
-  call node --no-warnings tools\release.mjs --notes "!NOTAS!"
+  powershell -NoProfile -ExecutionPolicy Bypass -File tools\build-native.ps1
+  if errorlevel 1 ( pause & exit /b 1 )
+  call node --no-warnings tools\release.mjs --native dist\native --notes "!NOTAS!"
   if errorlevel 1 ( pause & exit /b 1 )
 )
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\build-setup.ps1

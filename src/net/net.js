@@ -18,7 +18,8 @@ export class NetClient {
   }
   /** find a reachable server: saved/same-origin first, then localhost:8090 */
   async detect() {
-    const cands = [...new Set([this.base, location.protocol.startsWith('http') ? location.origin : null, `http://${location.hostname || 'localhost'}:8090`].filter(Boolean))];
+    const native = location.hostname === 'kaido.game';
+    const cands = [...new Set([this.base, location.protocol.startsWith('http') && !native ? location.origin : null, native ? 'http://localhost:8090' : `http://${location.hostname || 'localhost'}:8090`].filter(Boolean))];
     for (const c of cands) {
       try { const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 2500); const r = await fetch(c + '/api/info', { signal: ctl.signal }); clearTimeout(t); if (r.ok) { const info = await r.json(); if (info.protocol) { this.base = c; this.info = info; return info; } } } catch { }
     }
@@ -75,6 +76,8 @@ export class NetClient {
 }
 
 function defaultServer() {
+  // native Windows app (WebView2 virtual host): the online server is a separate machine/process
+  if (location.hostname === 'kaido.game') return 'http://localhost:8090';
   // the dedicated server also serves the game: same origin by default
   if (location.protocol.startsWith('http')) return location.origin;
   return `${location.protocol === 'https:' ? 'https' : 'http'}://${location.hostname || 'localhost'}:8090`;

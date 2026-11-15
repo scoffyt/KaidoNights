@@ -125,7 +125,13 @@ export function startServer(overrides = {}) {
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url, 'http://x');
-    if (config.corsOrigin) { res.setHeader('Access-Control-Allow-Origin', config.corsOrigin); res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); } }
+    // CORS: the native Windows app serves the game from http://kaido.game (WebView2) and talks to this server cross-origin
+    const origin = req.headers.origin;
+    if (origin && (origin === 'http://kaido.game' || origin === 'https://kaido.game' || (config.corsOrigin && config.corsOrigin.split(',').map(x => x.trim()).includes(origin)))) {
+      res.setHeader('Access-Control-Allow-Origin', origin); res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
+    }
     try {
       if (url.pathname === '/health') return json(res, 200, { ok: true, uptime: Math.round(process.uptime()), online: hub.online.size, rooms: hub.rooms.size, db: !!db.q('SELECT 1 AS ok').get() });
       if (url.pathname === '/metrics') {

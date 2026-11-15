@@ -1,4 +1,5 @@
 # Publica uma nova versao a cada push na branch main:
+#  0. compila o aplicativo nativo KaidoNights.exe (janela propria com WebView2)
 #  1. gera e assina o manifesto (segredo RELEASE_PRIVATE_KEY) -> branch "update-channel"
 #     (os launchers instalados baixam os arquivos alterados direto deste repositorio)
 #  2. gera os instaladores KaidoNights-Setup.exe / KaidoNights-Setup-Completo.exe
@@ -43,12 +44,16 @@ jobs:
         shell: pwsh
         run: node --no-warnings --test tests/physics.test.js tests/track.test.js tests/release.test.js
 
+      - name: Compilar o aplicativo nativo (KaidoNights.exe + WebView2)
+        shell: pwsh
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-native.ps1
+
       - name: Gerar manifesto assinado (canal GitHub)
         id: channel
         shell: pwsh
         env:
           RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
-        run: node --no-warnings tools/release.mjs --channel github
+        run: node --no-warnings tools/release.mjs --channel github --native dist/native
 
       - name: Publicar no canal de atualizacao (branch update-channel)
         shell: pwsh
@@ -56,6 +61,7 @@ jobs:
           $dir = Join-Path $env:RUNNER_TEMP 'channel-push'
           New-Item -ItemType Directory -Path $dir -Force | Out-Null
           Copy-Item channel/manifest.json, channel/manifest.json.sig -Destination $dir
+          if (Test-Path channel/objects) { Copy-Item channel/objects -Destination $dir -Recurse }
           Set-Location $dir
           git init -q
           git checkout -q -b update-channel
@@ -72,7 +78,7 @@ jobs:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           $n = ("" + $env:COMMIT_MSG).Split("`n")[0]
-          node --no-warnings tools/release.mjs --version ${{ steps.channel.outputs.version }} --notes "$n"
+          node --no-warnings tools/release.mjs --version ${{ steps.channel.outputs.version }} --native dist/native --notes "$n"
           powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-setup.ps1
 
       - name: Criar Release no GitHub

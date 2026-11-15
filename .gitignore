@@ -10,4 +10,5 @@ keys/
 logs/
 node_modules/
 release/
+tools/.cache/
 version.json

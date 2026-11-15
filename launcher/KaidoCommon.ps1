@@ -179,7 +179,8 @@ function Update-KaidoFiles([string]$installDir, $remote, [string]$base, [scriptb
     if ((Test-Path -LiteralPath $tmp) -and ((Get-Sha256 $tmp) -eq $f.h)) { $state.done += [long]$f.s; continue }   # resumed download
     # GitHub channel: files are fetched from the repository at the published commit (fileBase);
     # self-hosted channel: content-addressed objects/<sha256>
-    if ($remote.PSObject.Properties['fileBase'] -and $remote.fileBase) {
+    if ($f.PSObject.Properties['u'] -and $f.u) { $src = [string]$f.u }
+    elseif ($remote.PSObject.Properties['fileBase'] -and $remote.fileBase) {
       $enc = ($f.p.Split('/') | ForEach-Object { [Uri]::EscapeDataString($_) }) -join '/'
       $src = ([string]$remote.fileBase).TrimEnd('/') + '/' + $enc
     } else { $src = Join-Source $base ('objects/' + $f.h) }

@@ -96,9 +96,24 @@ try {
     $l.Description = $desc
     $l.Save()
   }
-  & $mk $sc.desktop ('"' + $vbs + '"') 'Jogar Kaido Nights'
-  & $mk (Join-Path $sc.menu 'Kaido Nights.lnk') ('"' + $vbs + '"') 'Jogar Kaido Nights'
-  & $mk (Join-Path $sc.menu 'Reparar Kaido Nights.lnk') ('"' + $vbs + '" repair') 'Confere e corrige os arquivos do jogo'
+  $exe = Join-Path $script:KaidoInstall 'KaidoNights.exe'
+  if (Test-Path -LiteralPath $exe) {
+    # native Windows app (WebView2 window, updates itself)
+    $mkExe = {
+      param($path, $argsLine, $desc)
+      $l = $sh.CreateShortcut($path)
+      $l.TargetPath = $exe; $l.Arguments = $argsLine; $l.WorkingDirectory = $script:KaidoInstall
+      $l.IconLocation = $exe + ',0'; $l.Description = $desc; $l.Save()
+    }
+    & $mkExe $sc.desktop '' 'Jogar Kaido Nights'
+    & $mkExe (Join-Path $sc.menu 'Kaido Nights.lnk') '' 'Jogar Kaido Nights'
+    & $mkExe (Join-Path $sc.menu 'Reparar Kaido Nights.lnk') '--repair' 'Confere e corrige os arquivos do jogo'
+    $vbs = $exe
+  } else {
+    & $mk $sc.desktop ('"' + $vbs + '"') 'Jogar Kaido Nights'
+    & $mk (Join-Path $sc.menu 'Kaido Nights.lnk') ('"' + $vbs + '"') 'Jogar Kaido Nights'
+    & $mk (Join-Path $sc.menu 'Reparar Kaido Nights.lnk') ('"' + $vbs + '" repair') 'Confere e corrige os arquivos do jogo'
+  }
   $un = $sh.CreateShortcut((Join-Path $sc.menu 'Desinstalar Kaido Nights.lnk'))
   $un.TargetPath = 'powershell.exe'
   $un.Arguments = '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + (Join-Path $script:KaidoInstall 'launcher\Instalar.ps1') + '" -Uninstall'
@@ -109,7 +124,7 @@ try {
   $size = [int]((@($r.manifest.files) | Measure-Object -Property s -Sum).Sum / 1KB)
   $props = @{
     DisplayName = 'Kaido Nights'; DisplayVersion = [string]$r.manifest.version; Publisher = 'Kaido Nights'
-    InstallLocation = $script:KaidoInstall; DisplayIcon = $ico
+    InstallLocation = $script:KaidoInstall; DisplayIcon = $(if (Test-Path -LiteralPath (Join-Path $script:KaidoInstall 'KaidoNights.exe')) { (Join-Path $script:KaidoInstall 'KaidoNights.exe') } else { $ico })
     UninstallString = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + (Join-Path $script:KaidoInstall 'launcher\Instalar.ps1') + '" -Uninstall'
   }
   foreach ($k in $props.Keys) { New-ItemProperty -Path $script:KaidoRegKey -Name $k -Value $props[$k] -PropertyType String -Force | Out-Null }
@@ -120,7 +135,8 @@ try {
   Write-KaidoLog ('instalado ' + $r.manifest.version + ' a partir de ' + $r.url)
   $win.form.Close()
   if (Ask ("Kaido Nights " + $r.manifest.version + " instalado.`nAtalhos criados na area de trabalho e no menu Iniciar.`nO jogo se atualiza sozinho ao abrir.`n`nJogar agora?")) {
-    Start-Process (Join-Path $env:WINDIR 'System32\wscript.exe') -ArgumentList ('"' + $vbs + '"')
+    if ($vbs -like '*.exe') { Start-Process -FilePath $vbs -WorkingDirectory $script:KaidoInstall }
+    else { Start-Process (Join-Path $env:WINDIR 'System32\wscript.exe') -ArgumentList ('"' + $vbs + '"') }
   }
 } catch {
   Write-KaidoLog ('instalacao falhou: ' + $_.Exception.Message)

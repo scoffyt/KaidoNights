@@ -109,6 +109,23 @@ for (const inc of INCLUDE) for (const abs of walk(join(ROOT, inc))) {
   total += buf.length;
   files.push({ p: rel, s: buf.length, h });
 }
+// native app (dist/native from tools/build-native.ps1): KaidoNights.exe + WebView2 DLLs at the install root.
+// They are build outputs (not in git), so on the GitHub channel they travel as objects in the update-channel branch.
+const nativeDir = arg('--native');
+if (nativeDir) {
+  const nd = resolve(ROOT, nativeDir);
+  if (!existsSync(join(nd, 'KaidoNights.exe'))) throw new Error('KaidoNights.exe não encontrado em ' + nd);
+  mkdirSync(join(OUT, 'objects'), { recursive: true });
+  for (const name of readdirSync(nd).sort()) {
+    const buf = readFileSync(join(nd, name)); const h = sha(buf);
+    const obj = join(OUT, 'objects', h);
+    if (!existsSync(obj)) { copyFileSync(join(nd, name), obj); newBytes += buf.length; }
+    total += buf.length;
+    const entry = { p: name, s: buf.length, h };
+    if (GITHUB) entry.u = `https://raw.githubusercontent.com/${repo}/update-channel/objects/${h}`;
+    files.push(entry);
+  }
+}
 const manifest = { app: 'kaido-nights', version, released: new Date().toISOString(), notes, minLauncher: 1, files };
 if (GITHUB) { manifest.fileBase = `https://raw.githubusercontent.com/${repo}/${commit}/`; manifest.commit = commit; manifest.repo = repo; }
 const text = JSON.stringify(manifest);
