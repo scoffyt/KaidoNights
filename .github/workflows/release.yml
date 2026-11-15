@@ -1,0 +1,85 @@
+# Publica uma nova versao a cada push na branch main:
+#  1. gera e assina o manifesto (segredo RELEASE_PRIVATE_KEY) -> branch "update-channel"
+#     (os launchers instalados baixam os arquivos alterados direto deste repositorio)
+#  2. gera os instaladores KaidoNights-Setup.exe / KaidoNights-Setup-Completo.exe
+#  3. cria a Release "vX.Y.Z" no GitHub com os instaladores
+name: Publicar versao
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verificar segredo de assinatura
+        shell: pwsh
+        env:
+          RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
+        run: |
+          if (-not $env:RELEASE_PRIVATE_KEY) {
+            Write-Error "Crie o segredo RELEASE_PRIVATE_KEY (Settings > Secrets and variables > Actions) com o conteudo de keys/release-private.pem. Veja ATUALIZACOES.md."
+            exit 1
+          }
+
+      - name: Testes
+        shell: pwsh
+        run: node --no-warnings --test tests/physics.test.js tests/track.test.js tests/release.test.js
+
+      - name: Gerar manifesto assinado (canal GitHub)
+        id: channel
+        shell: pwsh
+        env:
+          RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
+        run: node --no-warnings tools/release.mjs --channel github
+
+      - name: Publicar no canal de atualizacao (branch update-channel)
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'channel-push'
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          Copy-Item channel/manifest.json, channel/manifest.json.sig -Destination $dir
+          Set-Location $dir
+          git init -q
+          git checkout -q -b update-channel
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Canal de atualizacao: v${{ steps.channel.outputs.version }} (${{ github.sha }})"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" update-channel
+
+      - name: Gerar instaladores
+        shell: pwsh
+        env:
+          RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          $n = ("" + $env:COMMIT_MSG).Split("`n")[0]
+          node --no-warnings tools/release.mjs --version ${{ steps.channel.outputs.version }} --notes "$n"
+          powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-setup.ps1
+
+      - name: Criar Release no GitHub
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $v = "${{ steps.channel.outputs.version }}"
+          $notes = "Instale com **KaidoNights-Setup.exe** (baixa o jogo) ou **KaidoNights-Setup-Completo.exe** (offline). Quem ja tem o jogo instalado recebe esta versao automaticamente ao abrir.`n`nCommit: ${{ github.sha }}"
+          gh release create "v$v" dist/KaidoNights-Setup.exe dist/KaidoNights-Setup-Completo.exe --title "Kaido Nights $v" --notes $notes --latest

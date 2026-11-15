@@ -1,0 +1,17 @@
+services:
+  kaido:
+    build: .
+    image: kaido-nights:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      DB_PATH: /data/kaido.db
+      BACKUP_DIR: /data/backups
+      LOG_DIR: /data/logs
+    ports:
+      - "8090:8090"
+    volumes:
+      - kaido-data:/data
+volumes:
+  kaido-data:

@@ -1,0 +1,22 @@
+{
+  "type": "module",
+  "name": "kaido-nights",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Kaido Nights — drift game (browser) + dedicated multiplayer server",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --no-warnings server/index.js",
+    "start:prod": "NODE_ENV=production node --no-warnings server/index.js",
+    "test": "node --no-warnings --test tests/*.test.js && node --no-warnings --test --test-concurrency=1 tests/mp/multiplayer.test.js",
+    "test:physics": "node --no-warnings --test tests/*.test.js",
+    "test:mp": "node --no-warnings --test --test-concurrency=1 tests/mp/multiplayer.test.js",
+    "test:browser": "node tests/browser/two-clients.cjs http://localhost:8090",
+    "load": "node --no-warnings tests/mp/load.mjs http://localhost:8090 10,25,50,100 20",
+    "backup": "node --no-warnings server/tools/backup.js",
+    "restore": "node --no-warnings server/tools/restore.js",
+    "release": "node tools/release.mjs"
+  }
+}

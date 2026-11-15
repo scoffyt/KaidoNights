@@ -1,0 +1,3 @@
+# Store every file byte-for-byte (no line-ending conversion): the update manifest hashes the
+# checked-out files and the launcher downloads the same bytes from raw.githubusercontent.com
+* -text

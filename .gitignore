@@ -1,0 +1,13 @@
+*.db
+*.db-shm
+*.db-wal
+.env
+.kaido/
+channel/
+data/
+dist/
+keys/
+logs/
+node_modules/
+release/
+version.json
