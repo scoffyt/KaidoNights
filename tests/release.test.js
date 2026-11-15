@@ -7,8 +7,9 @@ import { readFileSync, existsSync, mkdtempSync } from 'node:fs';
 import { createPublicKey, verify, createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const has = existsSync(join(ROOT, 'release', 'manifest.json'));
 const b64url = s => s.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
