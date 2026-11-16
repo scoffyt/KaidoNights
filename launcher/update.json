@@ -1,0 +1,8 @@
+{
+  "manifestUrls": [
+    "https://raw.githubusercontent.com/scoffyt/KaidoNights/update-channel/manifest.json",
+    "http://localhost:8090/updates/manifest.json"
+  ],
+  "playUrl": "",
+  "browser": "auto"
+}

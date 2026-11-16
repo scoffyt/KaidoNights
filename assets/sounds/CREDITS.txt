@@ -1,0 +1,14 @@
+Sons reais usados no KAIDO NIGHTS
+=================================
+engine_low.wav, engine_mid.wav, engine_high.wav
+  "racing car engine sound loops" por domasx2 — OpenGameArt.org — licença CC0 (domínio público)
+  https://opengameart.org/content/racing-car-engine-sound-loops
+
+skid_loop.wav (convertido para 16 bits/44,1 kHz mono)
+  "Car tire squeal skid loop" por audible-edge (Tom Haigh) — OpenGameArt.org — licença CC-BY 3.0
+  https://opengameart.org/content/car-tire-squeal-skid-loop
+
+impact_1.wav .. impact_4.wav
+  Godot Engine demo projects (3d/truck_town) — licença MIT
+  Copyright (c) 2014-present Godot Engine contributors.
+  https://github.com/godotengine/godot-demo-projects

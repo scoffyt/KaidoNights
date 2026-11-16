@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>KAIDO NIGHTS — Hakone Bay Drift Circuit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/forza.css">
+<link rel="stylesheet" href="css/online.css">
+<script type="importmap">
+{ "imports": { "three": "./lib/three.module.js", "three/addons/": "./lib/addons/" } }
+</script>
+</head>
+<body>
+<div id="loading">
+  <div class="logo" style="text-align:center"><span class="k">KAIDO</span> <span class="n">NIGHTS</span><span class="sub">HAKONE BAY DRIFT CIRCUIT</span></div>
+  <div class="jp">街道ナイツ</div>
+  <div class="loadbar"><i></i></div>
+  <div class="loadtxt">Carregando</div>
+</div>
+<div id="ui"></div>
+<script>
+  if (location.protocol === 'file:') {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.body.insertAdjacentHTML('beforeend', '<div class="err"><div style="font-size:30px;font-weight:800;font-style:italic">KAIDO NIGHTS</div><p>O jogo precisa ser aberto por um servidor local (o navegador bloqueia módulos e o arquivo GLB via file://).</p><p><b>Dê dois cliques em <span style="color:#ff2d55">INICIAR_JOGO.bat</span></b> na pasta do jogo.</p></div>');
+    });
+  }
+  window.addEventListener('error', e => { console.error(e.error || e.message); });
+</script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
