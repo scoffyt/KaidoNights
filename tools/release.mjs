@@ -122,7 +122,7 @@ if (nativeDir) {
     if (!existsSync(obj)) { copyFileSync(join(nd, name), obj); newBytes += buf.length; }
     total += buf.length;
     const entry = { p: name, s: buf.length, h };
-    if (GITHUB) entry.u = `https://raw.githubusercontent.com/${repo}/update-channel/objects/${h}`;
+    if (GITHUB && !process.argv.includes('--native-in-tree')) entry.u = `https://raw.githubusercontent.com/${repo}/update-channel/objects/${h}`;
     files.push(entry);
   }
 }

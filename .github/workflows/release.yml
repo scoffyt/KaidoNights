@@ -48,28 +48,48 @@ jobs:
         shell: pwsh
         run: powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-native.ps1
 
-      - name: Gerar manifesto assinado (canal GitHub)
+      - name: Publicar no canal de atualizacao (branch update-channel)
         id: channel
         shell: pwsh
         env:
           RELEASE_PRIVATE_KEY: ${{ secrets.RELEASE_PRIVATE_KEY }}
-        run: node --no-warnings tools/release.mjs --channel github --native dist/native
-
-      - name: Publicar no canal de atualizacao (branch update-channel)
-        shell: pwsh
         run: |
-          $dir = Join-Path $env:RUNNER_TEMP 'channel-push'
-          New-Item -ItemType Directory -Path $dir -Force | Out-Null
-          Copy-Item channel/manifest.json, channel/manifest.json.sig -Destination $dir
-          if (Test-Path channel/objects) { Copy-Item channel/objects -Destination $dir -Recurse }
-          Set-Location $dir
-          git init -q
-          git checkout -q -b update-channel
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -q -m "Canal de atualizacao: v${{ steps.channel.outputs.version }} (${{ github.sha }})"
-          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" update-channel
+          # The update-channel branch holds the complete installable tree (game files + native app),
+          # one commit per version, never force-pushed: every published version stays downloadable.
+          #   commit A = files   ->  manifest.fileBase = raw.githubusercontent.com/<repo>/<A>/
+          #   commit B = A + manifest.json(.sig)   (what the launchers read)
+          $ErrorActionPreference = 'Stop'
+          $repoUrl = "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          $ch = Join-Path $env:RUNNER_TEMP 'channel'
+          git init -q $ch
+          git -C $ch config core.autocrlf false
+          git -C $ch config user.name "github-actions[bot]"
+          git -C $ch config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C $ch remote add origin $repoUrl
+          git -C $ch fetch -q --depth 1 origin update-channel 2>$null
+          if ($LASTEXITCODE -eq 0) { git -C $ch checkout -q -B update-channel FETCH_HEAD } else { git -C $ch checkout -q --orphan update-channel }
+          # replace the tree with this version's files
+          Get-ChildItem $ch -Force | Where-Object { $_.Name -ne '.git' } | Remove-Item -Recurse -Force
+          node --no-warnings tools/release.mjs --channel github --native dist/native --native-in-tree --out channel-tmp --sha 0000000
+          $m = Get-Content channel-tmp/manifest.json -Raw | ConvertFrom-Json
+          foreach ($f in $m.files) {
+            $src = if (Test-Path (Join-Path 'dist/native' $f.p)) { Join-Path 'dist/native' $f.p } else { $f.p }
+            $dst = Join-Path $ch $f.p
+            New-Item -ItemType Directory -Path (Split-Path -Parent $dst) -Force | Out-Null
+            Copy-Item -LiteralPath $src -Destination $dst
+          }
+          Set-Content -Path (Join-Path $ch '.gitattributes') -Value '* -text' -Encoding ascii
+          git -C $ch add -A
+          git -C $ch commit -q -m "Arquivos da versao $($m.version) (${{ github.sha }})"
+          $filesCommit = (git -C $ch rev-parse HEAD).Trim()
+          # sign the manifest pointing at the files commit
+          node --no-warnings tools/release.mjs --channel github --native dist/native --native-in-tree --out channel --sha $filesCommit --repo "${{ github.repository }}"
+          Copy-Item channel/manifest.json, channel/manifest.json.sig -Destination $ch
+          git -C $ch add manifest.json manifest.json.sig
+          git -C $ch commit -q -m "Canal de atualizacao: v$($m.version)"
+          git -C $ch push -q origin update-channel
+          if ($LASTEXITCODE -ne 0) { throw 'push do canal falhou' }
+          "version=$($m.version)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Gerar instaladores
         shell: pwsh
